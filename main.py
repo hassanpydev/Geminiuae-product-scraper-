@@ -72,6 +72,8 @@ def CallAPI(category_name: str, page_number: int, calculated_page_number=False) 
 def scrapSubCategories(subcategories):
     for i in subcategories:
         print(i.span.text)
+        print(getBrands(i['href']))
+
 
 def scrapCategories(source):
     soup = BeautifulSoup(source, "html.parser")
@@ -81,6 +83,7 @@ def scrapCategories(source):
     else:
         print("No categories found")
         return []
+
 
 def getAllCategories():
     main_url = "https://geminiuae.com/"
@@ -99,6 +102,13 @@ def getTotalItemsPerCategory(category_data: dict) -> int:
         return int(category_data["pagination"].get("total_items"))
     else:
         raise ValueError("Category must be a dict not a {}".format(type(category_data)))
+
+
+def getBrands(url: str) -> list[str]:
+    req = requests.get(url)
+    soup = BeautifulSoup(req.text, 'html.parser')
+    brands = [brand['href'] for brand in soup.select("#search_filters .js-search-link")]
+    return brands
 
 
 # total = getTotalItemsPerCategory(CallAPI("Ceiling System", 1, True))

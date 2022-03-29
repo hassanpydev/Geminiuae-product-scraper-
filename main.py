@@ -107,8 +107,24 @@ def getTotalItemsPerCategory(category_data: dict) -> int:
 def getBrands(url: str) -> list[str]:
     req = requests.get(url)
     soup = BeautifulSoup(req.text, 'html.parser')
-    brands = [brand['href'] for brand in soup.select("#search_filters .js-search-link")]
+    brands = [brand['href'] for brand in soup.select(".category-sub-menu a")]
     return brands
+def insertMainCategory(category_name: str, category_data: dict) -> None:
+    # todo check if category exists
+    # todo insert category and return id
+    pass
+
+def insertSubCategory(category_id: int, subcategory_name: str, subcategory_data: dict) -> None:
+    # todo check if subcategory exists
+    # todo insert subcategory and return id
+    # to do insert brands
+    #to do insert with parent id   
+    pass    
+
+def insertProduct(product_data: dict) -> None:
+    # todo check if product exists
+    # todo insert product and return id
+    pass
 
 
 # total = getTotalItemsPerCategory(CallAPI("Ceiling System", 1, True))
@@ -130,6 +146,7 @@ def getBrands(url: str) -> list[str]:
 t = getAllCategories()
 for i in t:
     cleaned_data = i.span.text
+    print(cleaned_data)
     print(len(i.select('.level-2 > a')))
     scrapSubCategories(i.select('.level-2 > a'))
     break

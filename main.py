@@ -1,6 +1,6 @@
 import json
 import os
-import queue
+import sqlite3
 
 import requests
 import fuzzywuzzy
@@ -69,12 +69,6 @@ def CallAPI(category_name: str, page_number: int, calculated_page_number=False) 
         print(response.raise_for_status())
 
 
-def scrapSubCategories(subcategories):
-    for i in subcategories:
-        print(i.span.text)
-        print(getBrands(i['href']))
-
-
 def scrapCategories(source):
     soup = BeautifulSoup(source, "html.parser")
     categories = soup.find_all("li", {"class": "level-1 parent"})
@@ -104,22 +98,60 @@ def getTotalItemsPerCategory(category_data: dict) -> int:
         raise ValueError("Category must be a dict not a {}".format(type(category_data)))
 
 
+def connectSqlLite() -> tuple:
+    connection = sqlite3.connect("test.sqlite3")
+    return connection, connection.cursor()
+
+
 def getBrands(url: str) -> list[str]:
     req = requests.get(url)
-    soup = BeautifulSoup(req.text, 'html.parser')
-    brands = [brand['href'] for brand in soup.select(".category-sub-menu a")]
+    soup = BeautifulSoup(req.text, "html.parser")
+    brands = [brand["href"] for brand in soup.select(".category-sub-menu a")]
     return brands
-def insertMainCategory(category_name: str, category_data: dict) -> None:
-    # todo check if category exists
-    # todo insert category and return id
-    pass
 
-def insertSubCategory(category_id: int, subcategory_name: str, subcategory_data: dict) -> None:
+
+def insertSubCategory(
+        category_id: int, subcategory_name: str
+) -> None:
     # todo check if subcategory exists
     # todo insert subcategory and return id
-    # to do insert brands
-    #to do insert with parent id   
-    pass    
+    # todo insert brands
+    # todo insert with parent id
+    print(subcategory_name.strip())
+    sql_str = f"""
+        INSERT INTO sub_category (category_name,parent) VALUES ('{subcategory_name.strip()}', {category_id});
+        """
+    print("Adding data to database")
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    print(cur.lastrowid)
+    connection.commit()
+    print("Data stored successfully")
+
+
+def scrapSubCategories(subcategories, parent):
+    for subcategory in subcategories:
+        print(subcategory.span.text)
+        insertSubCategory(subcategory_name=subcategory.span.text, category_id=parent)
+        print(getBrands(subcategory["href"]))
+
+
+def ScarpAndInsertMainCategory(category_name: str, category_selector) -> None:
+    # todo check if category exists
+    # todo insert category and return id
+    sql_str = f"""
+    INSERT INTO maincat (category_name) VALUES ('{category_name}');
+    """
+    print("Adding data to database")
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    print(cur.lastrowid)
+    connection.commit()
+    print("Data stored successfully")
+    print("Scraping Subcategories")
+    scrapSubCategories(category_selector, cur.lastrowid)
+    connection.close()
+
 
 def insertProduct(product_data: dict) -> None:
     # todo check if product exists
@@ -127,26 +159,9 @@ def insertProduct(product_data: dict) -> None:
     pass
 
 
-# total = getTotalItemsPerCategory(CallAPI("Ceiling System", 1, True))
-# q = queue.Queue()
-# for page in range(1, round(total / 12 + 1)):
-#     q.put(page)
-#     thread = threading.Thread(
-#         target=CallAPI, args=("Ceiling System", page), name=f"Thread--{page}"
-#     )
-#     thread.start()
-#     print(thread.name)
-#     products = CallAPI("Ceiling System", page)
-#     print(page)
-#
-# while threading.active_count() > 1:
-#     pass
-# else:
-#     write_json(name="Ceiling System", data_file=DATA)
 t = getAllCategories()
 for i in t:
     cleaned_data = i.span.text
     print(cleaned_data)
-    print(len(i.select('.level-2 > a')))
-    scrapSubCategories(i.select('.level-2 > a'))
-    break
+    ScarpAndInsertMainCategory(cleaned_data, i.select(".level-2 > a"))
+    print(len(i.select(".level-2 > a")))

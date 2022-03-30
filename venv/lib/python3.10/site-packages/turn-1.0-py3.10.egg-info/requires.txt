@@ -1,0 +1,8 @@
+redis>=2.10.5
+
+[test]
+flake8
+ipdb
+ipython
+pytest
+pytest-cov

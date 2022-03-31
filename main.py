@@ -101,12 +101,19 @@ def getTotalItemsPerCategory(category_data: dict) -> int:
 def connectSqlLite() -> tuple:
     connection = sqlite3.connect("test.sqlite3")
     return connection, connection.cursor()
-
+def storeBrands(brands) -> None:
+    # todo check if brand exists
+    # todo insert brand and return id
+    sql_str = f"""
+    INSERT INTO brands (brand_name,parent,url) VALUES ('{brands}');
+    VALUES (?)
+    """
 
 def getBrands(url: str) -> list[str]:
     req = requests.get(url)
     soup = BeautifulSoup(req.text, "html.parser")
     brands = [brand["href"] for brand in soup.select(".category-sub-menu a")]
+
     return brands
 
 

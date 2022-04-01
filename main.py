@@ -12,7 +12,7 @@ DATA = {"Ceiling System": []}
 
 
 def write_json(
-        path: os.path = os.getcwd(), name: str = "Undefined", data_file=None
+    path: os.path = os.getcwd(), name: str = "Undefined", data_file=None
 ) -> None:
     """Write results into JSON file
     Args:
@@ -33,12 +33,13 @@ def write_json(
         print(e)
 
 
-def CallAPI(category_name: str, page_number: int, calculated_page_number=False) -> dict:
-    category_name = category_name.replace(" ", "-")
-    url = "https://geminiuae.com/12-{}?page={}&from-xhr".format(
-        category_name, page_number
+def CallAPI(
+    category_name: str, page_number: int, brand_name: str, calculated_page_number=False
+) -> dict:
+    url = "https://geminiuae.com/{}?page={}&q=Categories-{}&from-xhr".format(
+        category_name, page_number, brand_name
     )
-
+    print(url)
     payload = {}
     headers = {
         "Connection": "keep-alive",
@@ -62,9 +63,7 @@ def CallAPI(category_name: str, page_number: int, calculated_page_number=False) 
         else:
             print("Request was successful")
             product = response.json()["products"]
-            lock.acquire()
-            DATA.get("Ceiling System").append(product)
-            lock.release()
+            return product
     else:
         print(response.raise_for_status())
 
@@ -101,25 +100,48 @@ def getTotalItemsPerCategory(category_data: dict) -> int:
 def connectSqlLite() -> tuple:
     connection = sqlite3.connect("test.sqlite3")
     return connection, connection.cursor()
-def storeBrands(brands) -> None:
-    # todo check if brand exists
-    # todo insert brand and return id
-    sql_str = f"""
-    INSERT INTO brands (brand_name,parent,url) VALUES ('{brands}');
-    VALUES (?)
+
+
+def productImage(product_url):
     """
 
-def getBrands(url: str) -> list[str]:
-    req = requests.get(url)
-    soup = BeautifulSoup(req.text, "html.parser")
-    brands = [brand["href"] for brand in soup.select(".category-sub-menu a")]
+    :param product_url:
+    :return:
+    """
+    request = requests.get(product_url)
+    if request.status_code == 200:
+        soup = BeautifulSoup(request.text, "html.parser")
+        img = soup.find_all("ul", {"class": "product-images js-qv-product-images"})
+        if img:
+            return [src.li.img["src"] for src in img]
 
-    return brands
 
-
-def insertSubCategory(
-        category_id: int, subcategory_name: str
+def insertProduct(
+    product_name, product_desc, product_image, product_url, parent, brand
 ) -> None:
+    """
+
+    :param product_name:
+    :param product_desc:
+    :param product_image:
+    :param product_url:
+    :param parent:
+    :param brand:
+    :return:
+    """
+    sql_str = f"""
+    insert into products (product_name,product_image,product_url,parent,brand) VALUES (
+    '{product_name}','{product_image[0].split('/')[-1]}','{product_url.split('/')[-1]}','{parent}','{brand}'
+    )"""
+    print("Adding product to database")
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    last_id = cur.lastrowid
+    connection.commit()
+    return last_id
+
+
+def insertSubCategory(category_id: int, subcategory_name: str) -> None:
     # todo check if subcategory exists
     # todo insert subcategory and return id
     # todo insert brands
@@ -131,16 +153,51 @@ def insertSubCategory(
     print("Adding data to database")
     connection, cur = connectSqlLite()
     cur.execute(sql_str)
-    print(cur.lastrowid)
+    last_id = cur.lastrowid
     connection.commit()
     print("Data stored successfully")
+    return last_id
+
+
+def getBrands(url: str) -> list[str]:
+    req = requests.get(url)
+    soup = BeautifulSoup(req.text, "html.parser")
+    brands = [
+        "-".join(brand["href"].split("/")[-1].split("-")[1::])
+        for brand in soup.select(".category-sub-menu a")
+    ]
+
+    return brands
 
 
 def scrapSubCategories(subcategories, parent):
     for subcategory in subcategories:
+        category_name = subcategory["href"].split("/")[-1]
         print(subcategory.span.text)
-        insertSubCategory(subcategory_name=subcategory.span.text, category_id=parent)
-        print(getBrands(subcategory["href"]))
+        current_id = insertSubCategory(
+            subcategory_name=subcategory.span.text, category_id=parent
+        )
+        brands = getBrands(subcategory["href"])
+        for brand in brands:
+            total_items = CallAPI(
+                category_name=category_name,
+                brand_name=brand,
+                calculated_page_number=True,
+                page_number=1,
+            )
+            for i in range(getTotalItemsPerCategory(total_items)):
+                products = CallAPI(
+                    category_name=category_name, page_number=i, brand_name=brand
+                )
+                for product in products:
+                    insertProduct(
+                        product_name=product.get("name"),
+                        product_desc=product.get("description_short"),
+                        product_image=productImage(product.get("link")),
+                        parent=current_id,
+                        product_url=product.get("link"),
+                        brand=brand,
+                    )
 
 
 def ScarpAndInsertMainCategory(category_name: str, category_selector) -> None:
@@ -160,10 +217,21 @@ def ScarpAndInsertMainCategory(category_name: str, category_selector) -> None:
     connection.close()
 
 
-def insertProduct(product_data: dict) -> None:
-    # todo check if product exists
-    # todo insert product and return id
-    pass
+def insertProductPhoto(url: str, product_id):
+    """
+
+    :param url:
+    :param product_id:
+    :return:
+    """
+    sql_str = f"""
+    insert into product_images (url, product_id) values (url,product_id)
+    
+    """
+    print("Adding data to database")
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    connection.commit()
 
 
 t = getAllCategories()
@@ -172,3 +240,14 @@ for i in t:
     print(cleaned_data)
     ScarpAndInsertMainCategory(cleaned_data, i.select(".level-2 > a"))
     print(len(i.select(".level-2 > a")))
+
+# print(
+#     getTotalItemsPerCategory(
+#         CallAPI(
+#             category_name="13-gypsum-boards",
+#             page_number=0,
+#             brand_name="all-brands",
+#             calculated_page_number=True,
+#         )
+#     )
+# )

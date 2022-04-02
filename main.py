@@ -159,7 +159,7 @@ def insertSubCategory(category_id: int, subcategory_name: str) -> None:
     return last_id
 
 
-def getBrands(url: str) -> list[str]:
+def getBrands(url: str):
     req = requests.get(url)
     soup = BeautifulSoup(req.text, "html.parser")
     brands = [

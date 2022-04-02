@@ -12,7 +12,7 @@ DATA = {"Ceiling System": []}
 
 
 def write_json(
-    path: os.path = os.getcwd(), name: str = "Undefined", data_file=None
+        path: os.path = os.getcwd(), name: str = "Undefined", data_file=None
 ) -> None:
     """Write results into JSON file
     Args:
@@ -34,7 +34,7 @@ def write_json(
 
 
 def CallAPI(
-    category_name: str, page_number: int, brand_name: str, calculated_page_number=False
+        category_name: str, page_number: int, brand_name: str, calculated_page_number=False
 ) -> dict:
     url = "https://geminiuae.com/{}?page={}&q=Categories-{}&from-xhr".format(
         category_name, page_number, brand_name
@@ -117,7 +117,7 @@ def productImage(product_url):
 
 
 def insertProduct(
-    product_name, product_desc, product_image, product_url, parent, brand
+        product_name, product_desc, product_image, product_url, parent, brand
 ) -> None:
     """
 
@@ -141,7 +141,11 @@ def insertProduct(
     return last_id
 
 
-def insertSubCategory(category_id: int, subcategory_name: str) -> None:
+def insertSubCategory(category_id: int, subcategory_name: str) -> str:
+    """
+
+    :rtype: str
+    """
     # todo check if subcategory exists
     # todo insert subcategory and return id
     # todo insert brands
@@ -179,25 +183,29 @@ def scrapSubCategories(subcategories, parent):
         )
         brands = getBrands(subcategory["href"])
         for brand in brands:
-            total_items = CallAPI(
-                category_name=category_name,
-                brand_name=brand,
-                calculated_page_number=True,
-                page_number=1,
-            )
-            for i in range(getTotalItemsPerCategory(total_items)):
-                products = CallAPI(
-                    category_name=category_name, page_number=i, brand_name=brand
+            if brand != 'all-brands':
+                print(brand)
+                total_items = CallAPI(
+                    category_name=category_name,
+                    brand_name=brand,
+                    calculated_page_number=True,
+                    page_number=1,
                 )
-                for product in products:
-                    insertProduct(
-                        product_name=product.get("name"),
-                        product_desc=product.get("description_short"),
-                        product_image=productImage(product.get("link")),
-                        parent=current_id,
-                        product_url=product.get("link"),
-                        brand=brand,
+                print(getTotalItemsPerCategory(total_items))
+                for page_number in range(1, getTotalItemsPerCategory(total_items)):
+                    products = CallAPI(
+                        category_name=category_name, page_number=page_number, brand_name=brand
                     )
+                    for product in products:
+                        print(product.get("name"))
+                        insertProduct(
+                            product_name=product.get("name"),
+                            product_desc=product.get("description_short"),
+                            product_image=productImage(product.get("link")),
+                            parent=current_id,
+                            product_url=product.get("link"),
+                            brand=brand,
+                        )
 
 
 def ScarpAndInsertMainCategory(category_name: str, category_selector) -> None:
@@ -206,13 +214,10 @@ def ScarpAndInsertMainCategory(category_name: str, category_selector) -> None:
     sql_str = f"""
     INSERT INTO maincat (category_name) VALUES ('{category_name}');
     """
-    print("Adding data to database")
     connection, cur = connectSqlLite()
     cur.execute(sql_str)
     print(cur.lastrowid)
     connection.commit()
-    print("Data stored successfully")
-    print("Scraping Subcategories")
     scrapSubCategories(category_selector, cur.lastrowid)
     connection.close()
 
@@ -228,7 +233,6 @@ def insertProductPhoto(url: str, product_id):
     insert into product_images (url, product_id) values (url,product_id)
     
     """
-    print("Adding data to database")
     connection, cur = connectSqlLite()
     cur.execute(sql_str)
     connection.commit()

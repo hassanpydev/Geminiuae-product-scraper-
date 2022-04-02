@@ -139,7 +139,7 @@ def insertProduct(
     last_id = cur.lastrowid
     connection.commit()
     return last_id
-
+ 
 
 def insertSubCategory(category_id: int, subcategory_name: str) -> str:
     """

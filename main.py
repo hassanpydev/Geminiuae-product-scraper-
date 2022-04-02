@@ -129,17 +129,21 @@ def insertProduct(
     :param brand:
     :return:
     """
-    sql_str = f"""
-    insert into products (product_name,product_image,product_url,parent,brand) VALUES (
-    '{product_name.strip("'")}','{product_image[0].split('/')[-1]}','{product_url.split('/')[-1]}','{parent}','{brand}'
-    );"""
-    print("Adding product to database")
-    connection, cur = connectSqlLite()
-    cur.execute(sql_str)
-    last_id = cur.lastrowid
-    connection.commit()
-    return last_id
- 
+    try:
+        sql_str = f"""
+        insert into products (product_name,product_image,product_url,parent,brand) VALUES (
+        '{product_name.strip("'")}','{product_image[0].split('/')[-1]}','{product_url.split('/')[-1]}','{parent}','{brand}'
+        );"""
+        print("Adding product to database")
+        connection, cur = connectSqlLite()
+        cur.execute(sql_str)
+        last_id = cur.lastrowid
+        connection.commit()
+        return last_id
+    except sqlite3.OperationalError as e:
+        print(e)
+        print(product_name)
+
 
 def insertSubCategory(category_id: int, subcategory_name: str) -> str:
     """

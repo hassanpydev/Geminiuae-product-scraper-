@@ -131,8 +131,8 @@ def insertProduct(
     """
     sql_str = f"""
     insert into products (product_name,product_image,product_url,parent,brand) VALUES (
-    '{product_name}','{product_image[0].split('/')[-1]}','{product_url.split('/')[-1]}','{parent}','{brand}'
-    )"""
+    '{product_name.strip("'")}','{product_image[0].split('/')[-1]}','{product_url.split('/')[-1]}','{parent}','{brand}'
+    );"""
     print("Adding product to database")
     connection, cur = connectSqlLite()
     cur.execute(sql_str)

@@ -48,14 +48,14 @@ def updateCategory_By_name(category_name: str) -> None:
     cur.execute(sql_str)
     connection.commit()
     connection.close()
-def updateSubCategory_By_name(category_name: str) -> None:
+def updateSubCategory_By_name(category_name: str,match) -> None:
     """
     update category name
     :param category_name:
     :return:
     """
     sql_str = f"""
-    UPDATE sub_category SET match = '{category_name}' WHERE category_name = '{category_name}';
+    UPDATE sub_category SET match = '{match}' WHERE category_name = '{category_name}';
     """
     connection, cur = connectSqlLite()
     cur.execute(sql_str)
@@ -74,8 +74,8 @@ def findMatch(category_name: str) -> str:
 for category in readSubCategory():
     print(category)
     best_match = findMatch(category)
-    if best_match[1] > 80:
-        updateSubCategory_By_name(categories_id.get(best_match[0]))
+    if best_match[1] > 75:
+        updateSubCategory_By_name(category,str(categories_id.get(best_match[0])))
         print(best_match)
     else:
         print("No match found")

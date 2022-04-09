@@ -48,7 +48,7 @@ def findMatch(category_name: str) -> str:
     :param category_name:
     :return:
     """
-    best_match = process.extractOne(category_name, readCategory())
+    best_match = process.extractOne(category_name, categories)
     return best_match
 for category in readCategory():
     print(category)

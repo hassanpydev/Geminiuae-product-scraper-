@@ -1,3 +1,4 @@
+from os import read
 from fuzzywuzzy import process
 from fuzzywuzzy import fuzz
 import json
@@ -35,14 +36,14 @@ def readSubCategory() -> List[str]:
     return [i[0] for i in result]   
 
 
-def updateCategory_By_name(category_name: str) -> None:
+def updateCategory_By_name(category_name: str,match) -> None:
     """
     update category name
     :param category_name:
     :return:
     """
     sql_str = f"""
-    UPDATE maincat SET cat_match = '{category_name}' WHERE category_name = '{category_name}';
+    UPDATE maincat SET cat_match = '{match}' WHERE category_name = '{category_name}';
     """
     connection, cur = connectSqlLite()
     cur.execute(sql_str)
@@ -71,11 +72,11 @@ def findMatch(category_name: str) -> str:
     """
     best_match = process.extractOne(category_name, categories)
     return best_match
-for category in readSubCategory():
+for category in readCategory():
     print(category)
     best_match = findMatch(category)
     if best_match[1] > 75:
-        updateSubCategory_By_name(category,str(categories_id.get(best_match[0])))
+        updateCategory_By_name(category,str(categories_id.get(best_match[0])))
         print(best_match)
     else:
         print("No match found")

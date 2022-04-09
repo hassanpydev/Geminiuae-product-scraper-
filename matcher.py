@@ -3,10 +3,14 @@ from fuzzywuzzy import fuzz
 import json
 import sqlite3
 from typing import List
+
+from soupsieve import match
 def connectSqlLite() -> tuple:
     connection = sqlite3.connect("test.sqlite3")
     return connection, connection.cursor()
 categories = json.loads(open("sm_categories_id.json").read()).keys()
+categories_id = json.loads(open("sm_categories_id.json").read())
+
 def readCategory() -> List[str]:
     """
     read category from sqlite db
@@ -54,7 +58,7 @@ for category in readCategory():
     print(category)
     best_match = findMatch(category)
     if best_match[1] > 80:
-        updateCategory_By_name(best_match[0])
+        updateCategory_By_name(categories_id(best_match[0]))
         print(best_match)
     else:
         print("No match found")

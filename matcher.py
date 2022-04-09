@@ -36,7 +36,7 @@ def updateCategory_By_name(category_name: str) -> None:
     :return:
     """
     sql_str = f"""
-    UPDATE maincat SET match = '{category_name}' WHERE category_name = '{category_name}';
+    UPDATE maincat SET cat_match = '{category_name}' WHERE category_name = '{category_name}';
     """
     connection, cur = connectSqlLite()
     cur.execute(sql_str)

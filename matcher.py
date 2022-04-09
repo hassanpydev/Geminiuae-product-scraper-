@@ -1,16 +1,60 @@
 from fuzzywuzzy import process
 from fuzzywuzzy import fuzz
 import json
+import sqlite3
 from typing import List
-data = {}
-def readJson(file_name) -> List[dict]:
-    with open(file_name, "r") as f:
-        data = json.load(f)
-    return data
-
-def writeJson(file_name, data):
-    with open(file_name, "w") as f:
-        json.dump(data, f)
-for category in readJson('sm_categories.json'):
-    data[category['name_en']] = category['id']
-writeJson('sm_categories_id.json', data)
+def connectSqlLite() -> tuple:
+    connection = sqlite3.connect("test.sqlite3")
+    return connection, connection.cursor()
+categories = json.loads(open("sm_categories_id.json").read()).keys()
+def readCategory() -> List[str]:
+    """
+    read category from sqlite db
+    :return:
+    """
+    sql_str = "select category_name from maincat"
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    result = cur.fetchall()
+    connection.close()
+    return [i[0] for i in result]
+def readSubCategory() -> List[str]:
+    """
+    read sub category from sqlite db
+    :return:
+    """
+    sql_str = "select category_name from sub_category"
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    result = cur.fetchall()
+    connection.close()
+    return [i[0] for i in result]   
+def updateCategory_By_name(category_name: str) -> None:
+    """
+    update category name
+    :param category_name:
+    :return:
+    """
+    sql_str = f"""
+    UPDATE maincat SET match = '{category_name}' WHERE category_name = '{category_name}';
+    """
+    connection, cur = connectSqlLite()
+    cur.execute(sql_str)
+    connection.commit()
+    connection.close()
+def findMatch(category_name: str) -> str:
+    """
+    find match for category name
+    :param category_name:
+    :return:
+    """
+    best_match = process.extractOne(category_name, readCategory())
+    return best_match
+for category in readCategory():
+    print(category)
+    best_match = findMatch(category)
+    if best_match[1] > 80:
+        updateCategory_By_name(best_match[0])
+        print(best_match)
+    else:
+        print("No match found")
